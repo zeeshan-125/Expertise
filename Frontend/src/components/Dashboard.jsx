@@ -61,15 +61,15 @@ export default function Dashboard() {
           benchmark: 'Budget: SAR 34,000',
         },
         {
-          title: 'Turnstile Punch Reliability',
-          value: '99.1%',
-          unit: 'accuracy',
-          change: '+0.7%',
+          title: 'On-Site Attendance Rate',
+          value: '98.6%',
+          unit: 'present',
+          change: '+1.4%',
           trend: 'up',
-          subtitle: '2 manual exceptions today',
-          icon: 'schedule',
-          barPercent: 99.1,
-          benchmark: 'SLA: 98.0%',
+          subtitle: '1,420 of 1,440 rostered present',
+          icon: 'how_to_reg',
+          barPercent: 98.6,
+          benchmark: 'Target: 95.0%',
         },
         {
           title: 'Compliance & Credential Index',
@@ -125,15 +125,15 @@ export default function Dashboard() {
           benchmark: 'Budget: SAR 210,000',
         },
         {
-          title: 'Turnstile Punch Reliability',
-          value: '98.4%',
-          unit: 'accuracy',
+          title: 'On-Site Attendance Rate',
+          value: '97.8%',
+          unit: 'present',
           change: '+1.2%',
           trend: 'up',
-          subtitle: '6 manual exceptions today',
-          icon: 'schedule',
-          barPercent: 98.4,
-          benchmark: 'SLA: 98.0%',
+          subtitle: '97.8% average shift reporting',
+          icon: 'how_to_reg',
+          barPercent: 97.8,
+          benchmark: 'Target: 95.0%',
         },
         {
           title: 'Compliance & Credential Index',
@@ -189,15 +189,15 @@ export default function Dashboard() {
           benchmark: 'Budget: SAR 840,000',
         },
         {
-          title: 'Turnstile Punch Reliability',
-          value: '98.8%',
-          unit: 'accuracy',
+          title: 'On-Site Attendance Rate',
+          value: '98.1%',
+          unit: 'present',
           change: '+1.8%',
           trend: 'up',
-          subtitle: '28 exceptions across month',
-          icon: 'schedule',
-          barPercent: 98.8,
-          benchmark: 'SLA: 98.0%',
+          subtitle: 'Consistently above 95% target',
+          icon: 'how_to_reg',
+          barPercent: 98.1,
+          benchmark: 'Target: 95.0%',
         },
         {
           title: 'Compliance & Credential Index',
@@ -253,15 +253,15 @@ export default function Dashboard() {
           benchmark: 'Budget: SAR 2,520,000',
         },
         {
-          title: 'Turnstile Punch Reliability',
-          value: '98.9%',
-          unit: 'accuracy',
+          title: 'On-Site Attendance Rate',
+          value: '97.9%',
+          unit: 'present',
           change: '+2.1%',
           trend: 'up',
-          subtitle: '99.2% OCR auto-reconciliation',
-          icon: 'schedule',
-          barPercent: 98.9,
-          benchmark: 'SLA: 98.0%',
+          subtitle: 'Quarterly shift attendance stability',
+          icon: 'how_to_reg',
+          barPercent: 97.9,
+          benchmark: 'Target: 95.0%',
         },
         {
           title: 'Compliance & Credential Index',
@@ -390,7 +390,7 @@ export default function Dashboard() {
               </div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-medium backdrop-blur-md shadow-xs">
                 <span className="material-symbols-outlined text-[14px] text-emerald-400">verified</span>
-                <span>Turnstile OCR Auto-Sync: 99.8%</span>
+                <span>Biometric Terminal Sync: 99.8%</span>
               </div>
             </div>
           </div>
@@ -734,7 +734,7 @@ export default function Dashboard() {
 
           {/* Bottom Fast Action Prompt */}
           <div className="mt-2 pt-2 border-t border-outline-variant/20 flex items-center justify-between">
-            <span className="font-label-sm text-[10.5px] text-on-surface-variant uppercase">Turnstile Ingest: Online</span>
+            <span className="font-label-sm text-[10.5px] text-on-surface-variant uppercase">Biometric Ingest: Online</span>
             <button className="text-secondary font-label-md text-xs font-semibold hover:underline flex items-center gap-1" type="button">
               <span>View Security Logs</span>
               <span className="material-symbols-outlined text-[14px]">arrow_forward</span>

@@ -172,7 +172,7 @@ export default function Login({ onLoginSuccess }) {
           </div>
 
           {/* 3 Interactive Pillars Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 relative z-10 my-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10 my-8 items-stretch">
             {[
               {
                 icon: 'verified_user',
@@ -198,18 +198,20 @@ export default function Login({ onLoginSuccess }) {
             ].map((f) => (
               <div
                 key={f.title}
-                className="bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-secondary/40 transition-all duration-200 p-4.5 rounded-2xl flex flex-col justify-between backdrop-blur-sm group"
+                className="bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-secondary/40 transition-colors duration-200 p-5 rounded-2xl flex flex-col justify-between backdrop-blur-sm group h-full shadow-sm"
               >
-                <div className="space-y-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary group-hover:scale-105 transition-transform">
+                <div className="flex flex-col flex-1">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary mb-3 shrink-0">
                     <span className="material-symbols-outlined text-[20px]">{f.icon}</span>
                   </div>
-                  <div className="font-headline-sm text-xs font-bold text-white group-hover:text-secondary transition-colors">
+                  <div className="font-headline-sm text-sm font-bold text-white mb-2 leading-tight">
                     {f.title}
                   </div>
-                  <p className="font-body-sm text-[11.5px] text-slate-300/75 leading-relaxed">{f.desc}</p>
+                  <p className="font-body-sm text-[12px] text-slate-300/80 leading-relaxed flex-1">
+                    {f.desc}
+                  </p>
                 </div>
-                <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-[11px]">
+                <div className="pt-3.5 mt-4 border-t border-white/10 flex items-center justify-between text-[11px] shrink-0">
                   <span className="font-data-mono text-slate-300">{f.stat}</span>
                   <span className="font-label-sm font-bold text-secondary bg-secondary/15 border border-secondary/30 px-2 py-0.5 rounded-md">
                     {f.badge}

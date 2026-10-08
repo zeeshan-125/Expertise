@@ -767,6 +767,14 @@ export default function SiteCoordinator({ userSession, onLogout, onSwitchRole })
     showToast(`Flagged exception for ${workerId} • Returned to field supervisor`);
   };
 
+  // Reset worker status back to pending
+  const handleResetWeeklyWorker = (workerId) => {
+    setWeeklyWorkers((prev) =>
+      prev.map((w) => (w.id === workerId ? { ...w, status: 'Submitted', signedOff: false } : w))
+    );
+    showToast(`Reset status to Pending for ${workerId}`);
+  };
+
   // Direct inline editing for daily hours in weekly matrix
   const handleDayHourChange = (workerId, dayKey, rawVal) => {
     setWeeklyWorkers((prev) =>
@@ -2558,45 +2566,63 @@ export default function SiteCoordinator({ userSession, onLogout, onSwitchRole })
 
                                 {/* Pinned Right 5: Accept / Reject Actions */}
                                 <td className={`sticky right-0 z-20 py-3 px-2 text-center w-[116px] min-w-[116px] max-w-[116px] ${stickyCellBg} transition-colors`}>
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <button
-                                      onClick={() => handleApproveWeeklyWorker(worker.id)}
-                                      className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                                        worker.status === 'Approved'
-                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border-emerald-500/30'
-                                      }`}
-                                      title="Accept / Approve Timesheet"
-                                      type="button"
-                                    >
-                                      <span className="material-symbols-outlined text-[15px]">check</span>
-                                    </button>
+                                  {worker.status === 'Approved' ? (
+                                    <div className="flex items-center justify-center">
+                                      <button
+                                        onClick={() => handleResetWeeklyWorker(worker.id)}
+                                        className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 border border-emerald-500/35 font-bold text-xs transition-all cursor-pointer shadow-2xs group"
+                                        title="Timesheet Approved • Click to change / undo"
+                                        type="button"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
+                                        <span>Approved</span>
+                                      </button>
+                                    </div>
+                                  ) : (worker.status === 'Flagged' || worker.status === 'Rejected') ? (
+                                    <div className="flex items-center justify-center">
+                                      <button
+                                        onClick={() => handleResetWeeklyWorker(worker.id)}
+                                        className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 border border-rose-500/35 font-bold text-xs transition-all cursor-pointer shadow-2xs group"
+                                        title="Timesheet Rejected • Click to change / undo"
+                                        type="button"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px] text-rose-600">cancel</span>
+                                        <span>Rejected</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        onClick={() => handleApproveWeeklyWorker(worker.id)}
+                                        className="w-7 h-7 rounded-lg border bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-700 border-emerald-500/30 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                                        title="Accept / Approve Timesheet"
+                                        type="button"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">check</span>
+                                      </button>
 
-                                    <button
-                                      onClick={() => handleRejectWeeklyWorker(worker.id)}
-                                      className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                                        worker.status === 'Flagged'
-                                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                                          : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 border-rose-500/30'
-                                      }`}
-                                      title="Reject / Flag Timesheet"
-                                      type="button"
-                                    >
-                                      <span className="material-symbols-outlined text-[15px]">close</span>
-                                    </button>
+                                      <button
+                                        onClick={() => handleRejectWeeklyWorker(worker.id)}
+                                        className="w-7 h-7 rounded-lg border bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-700 border-rose-500/30 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                                        title="Reject / Flag Timesheet"
+                                        type="button"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">close</span>
+                                      </button>
 
-                                    <button
-                                      onClick={() => {
-                                        setShowRemarkModal(worker);
-                                        setRemarkText(worker.remarks || '');
-                                      }}
-                                      className="w-7 h-7 rounded-lg border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-all cursor-pointer"
-                                      title="Supervisor Audio / Text Note"
-                                      type="button"
-                                    >
-                                      <span className="material-symbols-outlined text-[15px]">mic</span>
-                                    </button>
-                                  </div>
+                                      <button
+                                        onClick={() => {
+                                          setShowRemarkModal(worker);
+                                          setRemarkText(worker.remarks || '');
+                                        }}
+                                        className="w-7 h-7 rounded-lg border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-all cursor-pointer"
+                                        title="Supervisor Audio / Text Note"
+                                        type="button"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">mic</span>
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             );

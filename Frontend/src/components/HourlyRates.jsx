@@ -646,31 +646,12 @@ export default function HourlyRates() {
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
-              onClick={() => setIsBatchModalOpen(true)}
-              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/15 text-white px-3.5 py-2.5 rounded-xl font-label-md text-xs font-semibold backdrop-blur-md transition-all shadow-xs cursor-pointer"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">auto_fix_high</span>
-              <span>Batch Adjustment</span>
-            </button>
-            <button
               onClick={handleExportCSV}
               className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/15 text-white px-3.5 py-2.5 rounded-xl font-label-md text-xs font-semibold backdrop-blur-md transition-all shadow-xs cursor-pointer"
               type="button"
             >
               <span className="material-symbols-outlined text-[18px]">file_download</span>
               <span>Export Matrix</span>
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('bands');
-                triggerToast('Navigated to Trade Rate Benchmark Bands');
-              }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-[#F7A65E] hover:from-[#d16500] hover:to-[#e8964e] text-white px-4 py-2.5 rounded-xl font-label-md text-xs font-semibold transition-all shadow-lg shadow-secondary/25 hover:shadow-secondary/40 cursor-pointer"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">add_circle</span>
-              <span>New Rate Band</span>
             </button>
           </div>
         </div>
@@ -1566,43 +1547,27 @@ export default function HourlyRates() {
 
             {/* Modal Body / Form */}
             <form onSubmit={handleSaveEmployeeRate} className="p-6 space-y-4 text-xs font-body-md">
-              {/* Current vs New Rate Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-1">
-                  <label className="font-semibold text-on-surface">
-                    Base Hourly Rate (SAR/hr) <span className="text-error">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant font-bold">
-                      SAR
-                    </span>
-                    <input
-                      type="number"
-                      step="0.25"
-                      min="15"
-                      max="100"
-                      required
-                      value={editFormData.hourlyRateSAR}
-                      onChange={(e) => setEditFormData({ ...editFormData, hourlyRateSAR: e.target.value })}
-                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl pl-12 pr-4 py-2 font-data-mono text-sm font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary"
-                    />
-                  </div>
-                  <span className="text-[10.5px] text-on-surface-variant">Prevailing wage minimum: SAR 22.00</span>
+              {/* Base Hourly Rate */}
+              <div className="flex flex-col space-y-1">
+                <label className="font-semibold text-on-surface">
+                  Base Hourly Rate (SAR/hr) <span className="text-error">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant font-bold">
+                    SAR
+                  </span>
+                  <input
+                    type="number"
+                    step="0.25"
+                    min="15"
+                    max="100"
+                    required
+                    value={editFormData.hourlyRateSAR}
+                    onChange={(e) => setEditFormData({ ...editFormData, hourlyRateSAR: e.target.value })}
+                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl pl-12 pr-4 py-2 font-data-mono text-sm font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary"
+                  />
                 </div>
-
-                <div className="flex flex-col space-y-1">
-                  <label className="font-semibold text-on-surface">Rate Classification Tier</label>
-                  <select
-                    value={editFormData.tier}
-                    onChange={(e) => setEditFormData({ ...editFormData, tier: e.target.value })}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary"
-                  >
-                    <option value="Tier A (Leadership)">Tier A (Leadership / Master)</option>
-                    <option value="Tier B (Senior Tech)">Tier B (Senior Specialist)</option>
-                    <option value="Tier C (Standard)">Tier C (Standard Journeyman)</option>
-                    <option value="Tier D (Apprentice)">Tier D (Apprentice / Helper)</option>
-                  </select>
-                </div>
+                <span className="text-[10.5px] text-on-surface-variant">Prevailing wage minimum: SAR 22.00</span>
               </div>
 
               {/* Overtime Multiplier & Shift Allowances */}

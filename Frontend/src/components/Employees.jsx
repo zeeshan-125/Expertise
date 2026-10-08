@@ -1,36 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
+import OnboardEmployee, {
+  generateIqamaSvg,
+  generatePassportFrontSvg,
+  generatePassportBackSvg,
+} from './OnboardEmployee';
 
 export default function Employees() {
+  const [viewState, setViewState] = useState('roster'); // 'roster' | 'onboard'
+  const [inspectDocModal, setInspectDocModal] = useState(null); // Lightbox for inspecting documents in dossier
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedSupplier, setSelectedSupplier] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedEmployeeDetail, setSelectedEmployeeDetail] = useState(null);
-  const [isFetchingAI, setIsFetchingAI] = useState(false);
-  const [fetchSuccess, setFetchSuccess] = useState(false);
-
-  // Biometric Video Enrollment States (Add Employee Modal)
-  const [isVideoRecording, setIsVideoRecording] = useState(false);
-  const [isModalCameraActive, setIsModalCameraActive] = useState(false);
-  const [modalCountdown, setModalCountdown] = useState(4);
-  const [modalBlinkStage, setModalBlinkStage] = useState('initial'); // 'initial' | 'blink1' | 'blink2' | 'verifying' | 'captured'
-  const [capturedFrameUrl, setCapturedFrameUrl] = useState(null);
-  const [videoRecordProgress, setVideoRecordProgress] = useState(0);
-  const [recordedVideoClip, setRecordedVideoClip] = useState(null);
-  const [videoQualityChecks, setVideoQualityChecks] = useState({
-    singleFace: false,
-    goodLighting: false,
-    blinkDetected: false,
-    frameRate30: false,
-  });
-  const [enrollmentConsentGiven, setEnrollmentConsentGiven] = useState(false);
-
-  // Camera Refs
-  const modalVideoRef = useRef(null);
-  const modalStreamRef = useRef(null);
-  const modalRecordingIntervalRef = useRef(null);
+  const [copiedIban, setCopiedIban] = useState(false);
 
   // In-Dossier Video Enrollment States (Existing Employees)
   const [isEnrollingInDossier, setIsEnrollingInDossier] = useState(false);
@@ -64,65 +48,7 @@ export default function Employees() {
   ];
 
   // Pre-configured mock data for Absher / Muqeem registry auto-fill
-  const mockRegistryDatabase = {
-    '2491823901': {
-      fullName: 'Rayan Abdullah Al-Dosari',
-      nationality: 'Saudi Arabia',
-      gender: 'Male',
-      dob: '1992-05-14',
-      iqamaExpiry: '2027-11-20',
-      profession: 'Heavy Civil Superintendent',
-      bloodGroup: 'O+',
-      medicalClearance: 'Passed - Grade A',
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    },
-    '2301984210': {
-      fullName: 'Tariq Mansoor Al-Zahrani',
-      nationality: 'Saudi Arabia',
-      gender: 'Male',
-      dob: '1989-08-22',
-      iqamaExpiry: '2026-09-15',
-      profession: 'Electrical Systems Engineer',
-      bloodGroup: 'A+',
-      medicalClearance: 'Passed - Grade A',
-      photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    },
-    '2519284711': {
-      fullName: 'Muhammad Farhan',
-      nationality: 'Pakistan',
-      gender: 'Male',
-      dob: '1994-11-03',
-      iqamaExpiry: '2026-04-10',
-      profession: 'Certified High-Pressure Welder',
-      bloodGroup: 'B+',
-      medicalClearance: 'Passed - Grade A',
-      photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-    },
-    '2488192033': {
-      fullName: 'Soraya Maria Santos',
-      nationality: 'Philippines',
-      gender: 'Female',
-      dob: '1991-03-18',
-      iqamaExpiry: '2026-07-28',
-      profession: 'HVAC Specialist & BMS Operator',
-      bloodGroup: 'AB+',
-      medicalClearance: 'Passed - Grade A',
-      photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    },
-    'K8912304': {
-      fullName: 'Mateo Lucas Hernandez',
-      nationality: 'Mexico',
-      gender: 'Male',
-      dob: '1988-12-09',
-      iqamaExpiry: '2025-12-30',
-      profession: 'Structural Steel Master Rigger',
-      bloodGroup: 'O+',
-      medicalClearance: 'Passed - Grade A',
-      photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-    },
-  };
-
-  // Initial Seed Employees
+  // Initial Seed Employees with Attached Civil Documents & Identity Scans
   const [employees, setEmployees] = useState([
     {
       id: 'EMP-1001',
@@ -145,6 +71,10 @@ export default function Employees() {
       emergencyContact: 'Abdullah Al-Dosari (+966 50 123 4567)',
       gateAccess: 'Level 3 - All Terminal Zones',
       bloodGroup: 'O+',
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('K2491823', 'Rayan Abdullah Al-Dosari', 'Saudi Arabia', '1992-05-14', '2027-11-20'),
+      passportBack: generatePassportBackSvg('K2491823', 'Al Malaz District, Riyadh, KSA'),
+      iqamaPhoto: generateIqamaSvg('2491823901', 'Rayan Abdullah Al-Dosari', 'ريان عبدالله الدوسري', 'Heavy Civil Superintendent', '2027-11-20', 'O+'),
       enrolled_video_path: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
       video_enrolled_at: '2026-08-10 11:20 AST',
       biometric_consent: true,
@@ -171,6 +101,10 @@ export default function Employees() {
       emergencyContact: 'Elena Hernandez (+1 555 982 1201)',
       gateAccess: 'Level 2 - Fabrication Shed & Yard',
       bloodGroup: 'O+',
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('K8912304', 'Mateo Lucas Hernandez', 'Mexico', '1988-12-09', '2026-12-30'),
+      passportBack: generatePassportBackSvg('K8912304', 'Av. Insurgentes Sur 1602, CDMX, Mexico'),
+      iqamaPhoto: generateIqamaSvg('2489018234', 'Mateo Lucas Hernandez', 'ماتيو لوكاس هرنانديز', 'Level 3 Master Welder', '2026-12-30', 'O+'),
       enrolled_video_path: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
       video_enrolled_at: '2026-08-12 14:15 AST',
       biometric_consent: true,
@@ -197,6 +131,10 @@ export default function Employees() {
       emergencyContact: 'Miguel Santos (+63 917 234 5678)',
       gateAccess: 'Level 2 - MEP Utility Corridors',
       bloodGroup: 'AB+',
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('P8819203', 'Soraya Maria Santos', 'Philippines', '1991-03-18', '2026-07-28', 'F'),
+      passportBack: generatePassportBackSvg('P8819203', 'Makati City, Metro Manila, Philippines'),
+      iqamaPhoto: generateIqamaSvg('2488192033', 'Soraya Maria Santos', 'ثريا ماريا سانتوس', 'HVAC Systems Specialist', '2026-07-28', 'AB+'),
       enrolled_video_path: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
       video_enrolled_at: '2026-08-14 09:45 AST',
       biometric_consent: true,
@@ -223,6 +161,10 @@ export default function Employees() {
       emergencyContact: 'Mansoor Al-Zahrani (+966 55 987 6543)',
       gateAccess: 'Level 3 - Unrestricted Site Access',
       bloodGroup: 'A+',
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('K1082914', 'Tariq Mansoor Al-Zahrani', 'Saudi Arabia', '1989-08-22', '2028-04-12'),
+      passportBack: generatePassportBackSvg('K1082914', 'Al Andalus District, Jeddah, KSA'),
+      iqamaPhoto: generateIqamaSvg('1082914820', 'Tariq Mansoor Al-Zahrani', 'طارق منصور الزهراني', 'Site HSE Safety Officer', '2028-04-12', 'A+'),
       enrolled_video_path: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
       video_enrolled_at: '2026-08-15 11:00 AST',
       biometric_consent: true,
@@ -249,6 +191,10 @@ export default function Employees() {
       emergencyContact: 'Tariq Farhan (+92 300 1234567)',
       gateAccess: 'Level 2 - High Bay Fabrication',
       bloodGroup: 'B+',
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('P2519284', 'Muhammad Farhan', 'Pakistan', '1994-11-03', '2026-04-10'),
+      passportBack: generatePassportBackSvg('P2519284', 'Gulberg III, Lahore, Pakistan'),
+      iqamaPhoto: generateIqamaSvg('2519284711', 'Muhammad Farhan', 'محمد فرحان', 'High-Altitude Girder Welder', '2026-04-10', 'B+'),
       enrolled_video_path: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
       video_enrolled_at: '2026-08-16 16:30 AST',
       biometric_consent: true,
@@ -275,7 +221,11 @@ export default function Employees() {
       emergencyContact: 'Kofi Mensah (+233 24 123 4567)',
       gateAccess: 'Level 1 - Earthworks Zone Only',
       bloodGroup: 'B+',
-      enrolled_video_path: null, // Test case: No enrolled video
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('G2433190', 'Kwame Mensah', 'Ghana', '1993-02-17', '2026-09-30'),
+      passportBack: generatePassportBackSvg('G2433190', 'Airport Residential Area, Accra, Ghana'),
+      iqamaPhoto: generateIqamaSvg('2433190821', 'Kwame Mensah', 'كوامي منساه', 'Heavy Excavator Operator', '2026-09-30', 'B+'),
+      enrolled_video_path: null,
       video_enrolled_at: null,
       biometric_consent: false,
       consent_date: null,
@@ -301,6 +251,10 @@ export default function Employees() {
       emergencyContact: 'Mahmoud Al-Masri (+20 100 234 5678)',
       gateAccess: 'Level 2 - Heavy Logistics Staging',
       bloodGroup: 'O+',
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('E2401829', 'Ahmed Hassan Al-Masri', 'Egypt', '1987-04-25', '2027-02-18'),
+      passportBack: generatePassportBackSvg('E2401829', 'Nasr City, Cairo, Egypt'),
+      iqamaPhoto: generateIqamaSvg('2401829384', 'Ahmed Hassan Al-Masri', 'أحمد حسن المصري', 'Heavy Crane Operations Captain', '2027-02-18', 'O+'),
       enrolled_video_path: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
       video_enrolled_at: '2026-08-18 10:20 AST',
       biometric_consent: true,
@@ -327,264 +281,16 @@ export default function Employees() {
       emergencyContact: 'Khalil Al-Otaibi (+966 54 321 0987)',
       gateAccess: 'Level 2 - Civil Expansion Zone',
       bloodGroup: 'A+',
-      enrolled_video_path: null, // Test case: No enrolled video
+      medicalClearance: 'Passed - Grade A',
+      passportFront: generatePassportFrontSvg('K1093847', 'Ibrahim Khalil Al-Otaibi', 'Saudi Arabia', '1990-10-11', '2029-01-01'),
+      passportBack: generatePassportBackSvg('K1093847', 'Al Rabwah, Riyadh, KSA'),
+      iqamaPhoto: generateIqamaSvg('1093847291', 'Ibrahim Khalil Al-Otaibi', 'إبراهيم خليل العتيبي', 'Concrete Reinforcement Lead', '2029-01-01', 'A+'),
+      enrolled_video_path: null,
       video_enrolled_at: null,
       biometric_consent: false,
       consent_date: null,
     },
   ]);
-
-  // Form State for Add Employee Modal
-  const initialForm = {
-    // Step 1: Automated ID Fetch
-    idType: 'Iqama / Resident ID',
-    idNumber: '',
-    fullName: '',
-    nationality: '',
-    gender: 'Male',
-    dob: '',
-    iqamaExpiry: '',
-    profession: '',
-    bloodGroup: 'O+',
-    medicalClearance: 'Passed - Grade A',
-    photo: '',
-
-    // Step 2: Additional HR Details (Manual)
-    employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-    department: 'Civil & Heavy Framing',
-    supplier: 'Direct / In-House',
-    jobTitle: '',
-    site: 'HQ Metro Logistics (Site 04)',
-    hourlyRateSAR: '35.00',
-    monthlySalarySAR: '5,500',
-    status: 'Active',
-    iban: '',
-    emergencyContact: '',
-    gateAccess: 'Level 2 - Standard Terminal Access',
-    safetyCerts: 'OSHA-10, Medical Fitness',
-  };
-
-  const [formData, setFormData] = useState(initialForm);
-
-  // Auto-Fetch Details via Iqama / Passport Lookup Simulation
-  const handleAutoFetchId = () => {
-    if (!formData.idNumber.trim()) {
-      alert('Please enter an Iqama / National ID or Passport Number first.');
-      return;
-    }
-
-    setIsFetchingAI(true);
-    setFetchSuccess(false);
-
-    setTimeout(() => {
-      setIsFetchingAI(false);
-      const cleanId = formData.idNumber.trim();
-      const matched = mockRegistryDatabase[cleanId];
-
-      if (matched) {
-        setFormData((prev) => ({
-          ...prev,
-          fullName: matched.fullName,
-          nationality: matched.nationality,
-          gender: matched.gender,
-          dob: matched.dob,
-          iqamaExpiry: matched.iqamaExpiry,
-          profession: matched.profession,
-          bloodGroup: matched.bloodGroup,
-          medicalClearance: matched.medicalClearance,
-          photo: matched.photo,
-          jobTitle: prev.jobTitle || matched.profession,
-        }));
-        setFetchSuccess(true);
-      } else {
-        // Fallback realistic AI parsing from standard IDs
-        setFormData((prev) => ({
-          ...prev,
-          fullName: prev.fullName || 'Zaid Mansoor Al-Harbi',
-          nationality: prev.nationality || (cleanId.startsWith('1') ? 'Saudi Arabia' : 'Egypt'),
-          gender: 'Male',
-          dob: prev.dob || '1993-06-20',
-          iqamaExpiry: prev.iqamaExpiry || '2027-08-15',
-          profession: prev.profession || 'Site Technical Specialist',
-          bloodGroup: 'B+',
-          medicalClearance: 'Passed - Grade A',
-          photo:
-            prev.photo ||
-            'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-          jobTitle: prev.jobTitle || 'Field Operations Specialist',
-        }));
-        setFetchSuccess(true);
-      }
-    }, 850);
-  };
-
-  // Quick fill samples helper
-  const handleQuickSampleSelect = (sampleId) => {
-    setFormData((prev) => ({
-      ...prev,
-      idNumber: sampleId,
-      idType: sampleId.startsWith('K') ? 'Passport' : sampleId.startsWith('1') ? 'Saudi National ID' : 'Iqama / Resident ID',
-    }));
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Camera Management for Add Employee Modal
-  const stopModalCamera = () => {
-    if (modalStreamRef.current) {
-      modalStreamRef.current.getTracks().forEach((track) => track.stop());
-      modalStreamRef.current = null;
-    }
-    if (modalVideoRef.current) {
-      modalVideoRef.current.srcObject = null;
-    }
-    if (modalRecordingIntervalRef.current) {
-      clearInterval(modalRecordingIntervalRef.current);
-      modalRecordingIntervalRef.current = null;
-    }
-    setIsModalCameraActive(false);
-    setIsVideoRecording(false);
-  };
-
-  const handleCloseAddModal = () => {
-    stopModalCamera();
-    setIsAddModalOpen(false);
-    setFetchSuccess(false);
-    setRecordedVideoClip(null);
-    setCapturedFrameUrl(null);
-    setVideoRecordProgress(0);
-    setEnrollmentConsentGiven(false);
-    setModalBlinkStage('initial');
-    setFormData({
-      ...initialForm,
-      employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-    });
-  };
-
-  // Video Recording in Add Modal with live camera & blink challenge
-  const handleStartModalVideoRecording = async () => {
-    setIsVideoRecording(true);
-    setIsModalCameraActive(true);
-    setVideoRecordProgress(0);
-    setModalCountdown(4);
-    setModalBlinkStage('initial');
-    setRecordedVideoClip(null);
-    setCapturedFrameUrl(null);
-    setVideoQualityChecks({
-      singleFace: false,
-      goodLighting: false,
-      blinkDetected: false,
-      frameRate30: false,
-    });
-
-    // 1. Request user webcam stream
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: false,
-        });
-        modalStreamRef.current = stream;
-        if (modalVideoRef.current) {
-          modalVideoRef.current.srcObject = stream;
-          modalVideoRef.current.play().catch(() => {});
-        }
-      }
-    } catch (err) {
-      console.warn('Webcam stream notice (using fallback live stream simulation):', err);
-    }
-
-    // 2. Interactive Blink Sequence with on-screen prompts over 4 seconds
-    let progress = 0;
-    if (modalRecordingIntervalRef.current) {
-      clearInterval(modalRecordingIntervalRef.current);
-    }
-
-    modalRecordingIntervalRef.current = setInterval(() => {
-      progress += 2.5; // reaches 100 in 40 ticks = 4 seconds
-      setVideoRecordProgress(Math.min(Math.round(progress), 100));
-
-      if (progress < 25) {
-        setModalCountdown(4);
-        setModalBlinkStage('initial'); // "Looking for face..."
-        setVideoQualityChecks((prev) => ({ ...prev, singleFace: true }));
-      } else if (progress >= 25 && progress < 55) {
-        setModalCountdown(3);
-        setModalBlinkStage('blink1'); // "👁️ Please Blink Your Eyes Now!"
-        setVideoQualityChecks((prev) => ({ ...prev, singleFace: true, goodLighting: true }));
-      } else if (progress >= 55 && progress < 85) {
-        setModalCountdown(2);
-        setModalBlinkStage('blink2'); // "👁️ First blink captured! Blink once more to confirm!"
-        setVideoQualityChecks((prev) => ({ ...prev, singleFace: true, goodLighting: true, blinkDetected: true }));
-      } else if (progress >= 85 && progress < 100) {
-        setModalCountdown(1);
-        setModalBlinkStage('verifying'); // "Finalizing biometric EAR & mesh embedding..."
-        setVideoQualityChecks((prev) => ({ ...prev, singleFace: true, goodLighting: true, blinkDetected: true, frameRate30: true }));
-      } else if (progress >= 100) {
-        clearInterval(modalRecordingIntervalRef.current);
-        modalRecordingIntervalRef.current = null;
-        setModalCountdown(0);
-        setModalBlinkStage('captured');
-        setIsVideoRecording(false);
-
-        // Snapshot extraction from camera if active
-        let snapshot = null;
-        try {
-          if (modalVideoRef.current && modalVideoRef.current.videoWidth > 0) {
-            const canvas = document.createElement('canvas');
-            canvas.width = modalVideoRef.current.videoWidth;
-            canvas.height = modalVideoRef.current.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(modalVideoRef.current, 0, 0, canvas.width, canvas.height);
-            snapshot = canvas.toDataURL('image/jpeg', 0.9);
-          }
-        } catch (e) {
-          console.warn('Could not extract frame from webcam:', e);
-        }
-
-        if (snapshot) {
-          setCapturedFrameUrl(snapshot);
-        } else {
-          setCapturedFrameUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80');
-        }
-
-        // Stop camera tracks cleanly
-        if (modalStreamRef.current) {
-          modalStreamRef.current.getTracks().forEach((track) => track.stop());
-          modalStreamRef.current = null;
-        }
-
-        setVideoQualityChecks({
-          singleFace: true,
-          goodLighting: true,
-          blinkDetected: true,
-          frameRate30: true,
-        });
-        setEnrollmentConsentGiven(true);
-        setRecordedVideoClip('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
-      }
-    }, 100);
-  };
-
-  const handleResetModalVideoRecording = () => {
-    stopModalCamera();
-    setRecordedVideoClip(null);
-    setCapturedFrameUrl(null);
-    setVideoRecordProgress(0);
-    setModalCountdown(4);
-    setModalBlinkStage('initial');
-    setVideoQualityChecks({
-      singleFace: false,
-      goodLighting: false,
-      blinkDetected: false,
-      frameRate30: false,
-    });
-  };
 
   // Video Recording in Dossier (Existing Employees)
   const handleStartDossierVideoRecording = () => {
@@ -642,59 +348,6 @@ export default function Employees() {
     setDossierConsentGiven(false);
   };
 
-  const handleCreateEmployee = (e) => {
-    e.preventDefault();
-
-    const certList = formData.safetyCerts
-      ? formData.safetyCerts.split(',').map((c) => c.trim()).filter(Boolean)
-      : ['Site Induction Passed', 'OSHA-10'];
-
-    const newWorker = {
-      id: formData.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-      name: formData.fullName || 'New Onboarded Personnel',
-      photo:
-        capturedFrameUrl ||
-        formData.photo ||
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      idType: formData.idType,
-      idNumber: formData.idNumber || '2998811223',
-      iqamaExpiry: formData.iqamaExpiry || '2027-01-01',
-      nationality: formData.nationality || 'Saudi Arabia',
-      department: formData.department,
-      supplier: formData.supplier,
-      jobTitle: formData.jobTitle || formData.profession || 'Operations Specialist',
-      site: formData.site,
-      hourlyRateSAR: formData.hourlyRateSAR || '32.00',
-      monthlySalarySAR: formData.monthlySalarySAR || '5,500',
-      status: formData.status,
-      statusBadge: 'On-Site',
-      safetyCerts: certList,
-      iban: formData.iban || 'SA00 0000 0000 0000 0000 00',
-      emergencyContact: formData.emergencyContact || 'Pending Contact Entry',
-      gateAccess: formData.gateAccess,
-      bloodGroup: formData.bloodGroup,
-      enrolled_video_path: recordedVideoClip || null,
-      video_enrolled_at: recordedVideoClip ? new Date().toISOString().replace('T', ' ').substring(0, 19) + ' AST' : null,
-      biometric_consent: enrollmentConsentGiven,
-      consent_date: enrollmentConsentGiven ? new Date().toISOString().split('T')[0] : null,
-      isNew: true,
-    };
-
-    stopModalCamera();
-    setEmployees([newWorker, ...employees]);
-    setIsAddModalOpen(false);
-    setFetchSuccess(false);
-    setRecordedVideoClip(null);
-    setCapturedFrameUrl(null);
-    setVideoRecordProgress(0);
-    setModalBlinkStage('initial');
-    setEnrollmentConsentGiven(false);
-    setFormData({
-      ...initialForm,
-      employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-    });
-  };
-
   // Filter Logic
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
@@ -734,6 +387,24 @@ export default function Employees() {
     setSelectedSupplier('all');
     setSelectedStatus('all');
   };
+
+  if (viewState === 'onboard') {
+    return (
+      <OnboardEmployee
+        onBack={() => {
+          setViewState('roster');
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }}
+        onComplete={(newWorker) => {
+          setEmployees([newWorker, ...employees]);
+          setViewState('roster');
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }}
+        departmentsList={departmentsList}
+        suppliersList={suppliersList}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col w-full space-y-4 lg:space-y-5">
@@ -781,7 +452,10 @@ export default function Employees() {
           {/* Action Button: Add Employee */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start lg:self-center">
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setViewState('onboard');
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
               className="inline-flex items-center gap-1.5 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white px-4 py-2 rounded-xl font-label-md text-xs font-bold shadow-md shadow-secondary/30 transition-all group ring-2 ring-secondary/20"
               type="button"
             >
@@ -1011,6 +685,22 @@ export default function Employees() {
                   </span>
                 </div>
 
+                {/* Attached Civil Documents Badges */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 text-[10px] font-bold border border-blue-500/20">
+                    <span className="material-symbols-outlined text-[12px]">menu_book</span>
+                    Passport Front/Back
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-800 text-[10px] font-bold border border-emerald-500/20">
+                    <span className="material-symbols-outlined text-[12px]">credit_card</span>
+                    Iqama Active
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-800 text-[10px] font-bold border border-amber-500/20">
+                    <span className="material-symbols-outlined text-[12px]">verified</span>
+                    OCR Verified
+                  </span>
+                </div>
+
                 {/* Department & Supplier Specs */}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex items-center justify-between text-on-surface-variant">
@@ -1198,981 +888,618 @@ export default function Employees() {
         </div>
       )}
 
-      {/* Modal: Onboard Employee (With Absher / Muqeem AI Ingestion + Additional HR Form) */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface-container-lowest w-full max-w-3xl rounded-3xl shadow-2xl border border-outline-variant/60 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-primary via-primary-container to-[#2A3160] p-6 text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-secondary border border-white/20">
-                  <span className="material-symbols-outlined text-[24px]">person_add</span>
-                </div>
-                <div>
-                  <h2 className="font-headline-md text-xl font-bold leading-tight flex items-center gap-2">
-                    <span>Onboard Workforce Personnel</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-white uppercase tracking-wider">
-                      QIWA / Absher AI
-                    </span>
-                  </h2>
-                  <p className="text-xs text-primary-fixed mt-0.5">
-                    Automated government registry identity lookup followed by operational details assignment
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleCloseAddModal}
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            {/* Modal Scrollable Body */}
-            <form onSubmit={handleCreateEmployee} className="flex-1 overflow-y-auto">
-              <div className="p-6 space-y-6">
-                {/* ----------------- SECTION 1: AI IDENTITY FETCH VIA IQAMA / PASSPORT ----------------- */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-surface-container-low via-surface-container-lowest to-[#FAF8F5] border border-secondary/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-secondary text-white text-xs font-bold flex items-center justify-center">
-                        1
-                      </span>
-                      <h3 className="font-headline-sm text-sm font-bold text-on-surface">
-                        Automated Identity Extraction (Iqama / Passport AI Fetch)
-                      </h3>
-                    </div>
-                    <span className="text-[11px] font-semibold text-secondary">
-                      Absher &amp; Muqeem Gateway
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-on-surface-variant">
-                    Enter the worker's 10-digit Iqama / Resident ID or Passport number to automatically ingest verified civil registry records.
-                  </p>
-
-                  {/* ID Input Ribbon */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                    <div className="sm:col-span-4">
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Document Type *
-                      </label>
-                      <select
-                        name="idType"
-                        value={formData.idType}
-                        onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs font-semibold"
-                      >
-                        <option value="Iqama / Resident ID">Iqama / Resident ID</option>
-                        <option value="Saudi National ID">Saudi National ID</option>
-                        <option value="Passport">Passport (International)</option>
-                      </select>
-                    </div>
-
-                    <div className="sm:col-span-5">
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Iqama or Passport Number *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          name="idNumber"
-                          value={formData.idNumber}
-                          onChange={handleInputChange}
-                          placeholder="e.g. 2491823901 or K8912304"
-                          className="w-full bg-surface-container-lowest text-on-surface px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs sm:text-sm font-data-mono font-bold tracking-wider"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="sm:col-span-3">
-                      <button
-                        type="button"
-                        onClick={handleAutoFetchId}
-                        disabled={isFetchingAI}
-                        className="w-full py-2.5 px-3 bg-secondary hover:bg-secondary/90 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-                      >
-                        {isFetchingAI ? (
-                          <>
-                            <span className="material-symbols-outlined text-[16px] animate-spin">
-                              progress_activity
-                            </span>
-                            <span>Querying...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="material-symbols-outlined text-[16px]">sync_alt</span>
-                            <span>Auto-Fetch</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Quick Click Mock Samples */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                      Try Sample IDs:
-                    </span>
-                    {Object.keys(mockRegistryDatabase).map((sampleId) => (
-                      <button
-                        key={sampleId}
-                        type="button"
-                        onClick={() => handleQuickSampleSelect(sampleId)}
-                        className="px-2 py-0.5 rounded-md bg-surface-container-highest hover:bg-secondary/20 hover:text-secondary text-on-surface-variant text-[10px] font-data-mono font-semibold transition-colors"
-                      >
-                        {sampleId}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* AI Fetch Feedback Alert */}
-                  {fetchSuccess && (
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between animate-fade-in">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-emerald-600">
-                          check_circle
-                        </span>
-                        <span>
-                          <strong>Verified Record Ingested:</strong> Successfully fetched civil registry data for{' '}
-                          <strong className="underline">{formData.fullName}</strong>.
-                        </span>
-                      </div>
-                      <span className="font-data-mono text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
-                        99.4% Match Confidence
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Populated Government Identity Fields */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">
-                        Full Legal Name (Fetched)
-                      </label>
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        placeholder="Auto-populated name"
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2 rounded-xl border border-outline-variant/30 text-xs font-semibold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">
-                        Nationality (Fetched)
-                      </label>
-                      <input
-                        type="text"
-                        name="nationality"
-                        value={formData.nationality}
-                        onChange={handleInputChange}
-                        placeholder="Auto-populated nationality"
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2 rounded-xl border border-outline-variant/30 text-xs font-semibold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">
-                        Iqama / Visa Expiry (Fetched)
-                      </label>
-                      <input
-                        type="date"
-                        name="iqamaExpiry"
-                        value={formData.iqamaExpiry}
-                        onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2 rounded-xl border border-outline-variant/30 text-xs font-data-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">
-                        Official Iqama Profession
-                      </label>
-                      <input
-                        type="text"
-                        name="profession"
-                        value={formData.profession}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Certified Welder"
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2 rounded-xl border border-outline-variant/30 text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">
-                        Medical Clearance Status
-                      </label>
-                      <input
-                        type="text"
-                        name="medicalClearance"
-                        value={formData.medicalClearance}
-                        onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2 rounded-xl border border-outline-variant/30 text-xs font-medium text-emerald-700"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">
-                        Blood Group
-                      </label>
-                      <input
-                        type="text"
-                        name="bloodGroup"
-                        value={formData.bloodGroup}
-                        onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest text-on-surface px-3 py-2 rounded-xl border border-outline-variant/30 text-xs font-data-mono font-bold"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* ----------------- SECTION 2: ADDITIONAL HR OPERATIONAL DETAILS ----------------- */}
-                <div className="p-5 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
-                        2
-                      </span>
-                      <h3 className="font-headline-sm text-sm font-bold text-on-surface">
-                        Additional Operational &amp; Deployment Details (Manual HR Entry)
-                      </h3>
-                    </div>
-                    <span className="text-[11px] font-medium text-on-surface-variant">
-                      Site &amp; Payroll Assignment
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-on-surface-variant">
-                    Fill in operational parameters, assigned trade, department cost centers, and payroll disbursement values.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Department Allocation */}
-                    <div>
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Assigned Department *
-                      </label>
-                      <select
-                        required
-                        name="department"
-                        value={formData.department}
-                        onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest text-on-surface px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs font-semibold"
-                      >
-                        {departmentsList.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Supplier Agency Allocation */}
-                    <div>
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Supplier / Contracting Agency *
-                      </label>
-                      <select
-                        required
-                        name="supplier"
-                        value={formData.supplier}
-                        onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest text-on-surface px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs font-semibold"
-                      >
-                        {suppliersList.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Operational Job Title / Trade */}
-                    <div>
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Operational Trade / Job Title *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        name="jobTitle"
-                        value={formData.jobTitle}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Master Welder Level 3"
-                        className="w-full bg-surface-container-lowest text-on-surface px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs font-semibold"
-                      />
-                    </div>
-
-                    {/* Terminal / Facility */}
-                    <div>
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Assigned Site / Terminal
-                      </label>
-                      <input
-                        type="text"
-                        name="site"
-                        value={formData.site}
-                        onChange={handleInputChange}
-                        placeholder="HQ Metro Logistics (Site 04)"
-                        className="w-full bg-surface-container-lowest text-on-surface px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Compensation in SAR */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Hourly Rate (SAR) *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-data-mono text-xs font-bold text-secondary">
-                          SAR
-                        </span>
-                        <input
-                          type="text"
-                          required
-                          name="hourlyRateSAR"
-                          value={formData.hourlyRateSAR}
-                          onChange={handleInputChange}
-                          placeholder="35.00"
-                          className="w-full bg-surface-container-lowest text-on-surface pl-14 pr-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs sm:text-sm font-data-mono font-bold"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-on-surface mb-1">
-                        Monthly Salary Benchmark (SAR)
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-data-mono text-xs font-bold text-secondary">
-                          SAR
-                        </span>
-                        <input
-                          type="text"
-                          name="monthlySalarySAR"
-                          value={formData.monthlySalarySAR}
-                          onChange={handleInputChange}
-                          placeholder="5,500"
-                          className="w-full bg-surface-container-lowest text-on-surface pl-14 pr-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs sm:text-sm font-data-mono font-bold"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-
-
-                  {/* Emergency Contact */}
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface mb-1">
-                      Emergency Contact Name &amp; Phone
-                    </label>
-                    <input
-                      type="text"
-                      name="emergencyContact"
-                      value={formData.emergencyContact}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Abdullah Al-Dosari (+966 50 123 4567)"
-                      className="w-full bg-surface-container-lowest text-on-surface px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:ring-2 focus:ring-secondary/40 text-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* ----------------- SECTION 3: BIOMETRIC VIDEO ENROLLMENT & CONSENT (BLINK PROFILE) ----------------- */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-surface-container-low via-surface-container-lowest to-[#FAF8F5] border border-secondary/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-secondary text-white text-xs font-bold flex items-center justify-center">
-                        3
-                      </span>
-                      <h3 className="font-headline-sm text-sm font-bold text-on-surface">
-                        Biometric Video Enrollment &amp; PDPL Consent (Blink Challenge Profile)
-                      </h3>
-                    </div>
-                    <span className="text-[11px] font-semibold text-secondary">
-                      Cashier Kiosk &amp; Gate Liveness
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-on-surface-variant">
-                    Capture a 4-second video clip with natural eye blink to enroll the worker's facial landmark mesh for anti-spoofing verification at cash disbursement kiosks.
-                  </p>
-
-                  {/* Recorder Box */}
-                  <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-3.5">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div>
-                        <h4 className="text-xs font-bold text-on-surface flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[16px] text-secondary">videocam</span>
-                          <span>4-Second Master Blink Reference Recording</span>
-                        </h4>
-                        <p className="text-[11px] text-on-surface-variant mt-0.5">
-                          Click to launch camera. Follow on-screen instruction to blink twice.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!recordedVideoClip ? (
-                          <button
-                            type="button"
-                            onClick={handleStartModalVideoRecording}
-                            disabled={isVideoRecording}
-                            className="px-4 py-2 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {isVideoRecording ? 'fiber_manual_record' : 'videocam'}
-                            </span>
-                            <span>{isVideoRecording ? 'Recording Video (4s)...' : 'Start 4s Recording'}</span>
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
-                              <span className="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
-                              Blink Verified (4s Master Reference)
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleResetModalVideoRecording}
-                              className="px-3 py-1 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-lg text-xs font-semibold"
-                            >
-                              Retake
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* LIVE CAMERA VIEWFINDER & INTERACTIVE BLINK PROMPTS */}
-                    {(isModalCameraActive || isVideoRecording || recordedVideoClip) && (
-                      <div className="relative w-full h-72 sm:h-80 bg-slate-950 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-xl flex items-center justify-center animate-fade-in">
-                        {/* Live Video or Recorded Freeze-frame */}
-                        {!recordedVideoClip ? (
-                          <video
-                            ref={modalVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className="w-full h-full object-cover transform scale-x-[-1]"
-                          />
-                        ) : (
-                          <div className="relative w-full h-full flex items-center justify-center bg-slate-900">
-                            <img
-                              src={capturedFrameUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80'}
-                              alt="Captured Biometric Frame"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40"></div>
-                          </div>
-                        )}
-
-                        {/* PROMINENT ON-SCREEN BLINK CHALLENGE PROMPT BANNER */}
-                        <div className="absolute top-3 inset-x-3 z-20 flex flex-col items-center">
-                          <div className={`w-full max-w-lg p-2.5 sm:p-3 rounded-xl border shadow-lg backdrop-blur-md text-center transition-all ${
-                            modalBlinkStage === 'blink1'
-                              ? 'bg-blue-900/90 border-blue-400 text-white animate-pulse'
-                              : modalBlinkStage === 'blink2'
-                              ? 'bg-amber-900/90 border-amber-400 text-white animate-bounce'
-                              : modalBlinkStage === 'verifying'
-                              ? 'bg-teal-900/90 border-teal-400 text-white'
-                              : modalBlinkStage === 'captured'
-                              ? 'bg-emerald-900/90 border-emerald-400 text-white'
-                              : 'bg-black/80 border-white/20 text-white'
-                          }`}>
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="material-symbols-outlined text-[20px] text-amber-400">
-                                {modalBlinkStage === 'captured' ? 'verified' : 'visibility'}
-                              </span>
-                              <h4 className="text-xs sm:text-sm font-black tracking-wide uppercase">
-                                {modalBlinkStage === 'initial' && 'Looking for face • Look straight into camera'}
-                                {modalBlinkStage === 'blink1' && '👁️ PLEASE BLINK YOUR EYES NOW!'}
-                                {modalBlinkStage === 'blink2' && '👁️ BLINK ONCE MORE TO CONFIRM!'}
-                                {modalBlinkStage === 'verifying' && 'Analyzing Eye Aspect Ratio & 512-D Landmark Mesh...'}
-                                {modalBlinkStage === 'captured' && '✓ Biometric Blink Reference Captured & Enrolled!'}
-                              </h4>
-                            </div>
-                            <p dir="rtl" className="text-[11px] font-bold text-slate-200 mt-0.5">
-                              {modalBlinkStage === 'initial' && 'يرجى النظر مباشرة إلى الكاميرا'}
-                              {modalBlinkStage === 'blink1' && 'ارمِش بعينيك الآن أمام الكاميرا!'}
-                              {modalBlinkStage === 'blink2' && 'تم رصد الرمشة الأولى! ارمِش مرة ثانية للتأكيد'}
-                              {modalBlinkStage === 'verifying' && 'جاري معالجة معالم الوجه والرمش...'}
-                              {modalBlinkStage === 'captured' && 'تم التقاط بصمة الفيديو والرمش بنجاح!'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Top-Right Circular Countdown Badge */}
-                        {!recordedVideoClip && (
-                          <div className="absolute top-3 right-3 z-30">
-                            <div className="w-11 h-11 rounded-xl bg-black/75 border border-white/20 text-white flex flex-col items-center justify-center font-mono shadow-md">
-                              <span className="text-base font-black text-amber-400">{modalCountdown}s</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Biometric Scanning Oval with Animated EAR Landmark Dots */}
-                        {!recordedVideoClip && (
-                          <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
-                            <div className="w-44 h-56 sm:w-48 sm:h-64 border-2 border-dashed border-blue-400/90 rounded-full flex items-center justify-center relative shadow-[0_0_25px_rgba(59,130,246,0.35)]">
-                              {/* Laser Scan line */}
-                              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent shadow-[0_0_12px_#3B82F6] animate-pulse"></div>
-
-                              {/* Eye Aspect Ratio Landmark Tracking Dots */}
-                              <div className={`absolute top-20 left-12 w-3 h-3 rounded-full shadow-[0_0_8px_#10B981] transition-all ${
-                                modalBlinkStage === 'blink1' || modalBlinkStage === 'blink2' || modalBlinkStage === 'verifying'
-                                  ? 'bg-emerald-400 scale-125'
-                                  : 'bg-blue-400 animate-ping'
-                              }`}></div>
-                              <div className={`absolute top-20 right-12 w-3 h-3 rounded-full shadow-[0_0_8px_#10B981] transition-all ${
-                                modalBlinkStage === 'blink1' || modalBlinkStage === 'blink2' || modalBlinkStage === 'verifying'
-                                  ? 'bg-emerald-400 scale-125'
-                                  : 'bg-blue-400 animate-ping'
-                              }`}></div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Active Recording / Live Streaming Badge */}
-                        {!recordedVideoClip ? (
-                          <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-white/10 text-[10px] text-white font-mono">
-                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                            <span>LIVE CAMERA • EAR LIVENESS</span>
-                          </div>
-                        ) : (
-                          <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 bg-emerald-950/80 backdrop-blur-xs px-3 py-1 rounded-lg border border-emerald-500/40 text-[11px] text-emerald-300 font-bold">
-                            <span className="material-symbols-outlined text-[15px] text-emerald-400">check_circle</span>
-                            <span>Ready to Register Employee</span>
-                          </div>
-                        )}
-
-                        {/* Retake Button Overlaid on Preview */}
-                        {recordedVideoClip && (
-                          <div className="absolute bottom-3 right-3 z-20">
-                            <button
-                              type="button"
-                              onClick={handleResetModalVideoRecording}
-                              className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1 border border-white/30 transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-[14px]">refresh</span>
-                              <span>Retake</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Progress Bar when recording */}
-                    {isVideoRecording && (
-                      <div className="space-y-1.5 pt-1 animate-fade-in">
-                        <div className="flex justify-between text-[11px] font-semibold text-secondary">
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                            <span>Capturing MediaPipe Face Mesh &amp; EAR stream...</span>
-                          </span>
-                          <span className="font-data-mono">{videoRecordProgress}%</span>
-                        </div>
-                        <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-secondary to-[#F18E3B] transition-all duration-200"
-                            style={{ width: `${videoRecordProgress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Quality Feedback When Captured */}
-                    {recordedVideoClip && (
-                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between animate-fade-in">
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
-                          <span><strong>Video Captured:</strong> Natural eye blinks confirmed. Employee is ready to register.</span>
-                        </div>
-                        <span className="font-data-mono text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
-                          EAR: 0.18 &lt; 0.21 PASS
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Automated Quality Checks Matrix */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-outline-variant/30 text-[11px]">
-                      <div className={`p-2 rounded-lg flex items-center gap-1.5 transition-colors ${videoQualityChecks.singleFace ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
-                        <span className="material-symbols-outlined text-[15px] text-emerald-600">{videoQualityChecks.singleFace ? 'check_circle' : 'radio_button_unchecked'}</span>
-                        <span className="font-medium">Single Face</span>
-                      </div>
-                      <div className={`p-2 rounded-lg flex items-center gap-1.5 transition-colors ${videoQualityChecks.goodLighting ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
-                        <span className="material-symbols-outlined text-[15px] text-emerald-600">{videoQualityChecks.goodLighting ? 'check_circle' : 'radio_button_unchecked'}</span>
-                        <span className="font-medium">&gt;300 Lux Light</span>
-                      </div>
-                      <div className={`p-2 rounded-lg flex items-center gap-1.5 transition-colors ${videoQualityChecks.blinkDetected ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
-                        <span className="material-symbols-outlined text-[15px] text-emerald-600">{videoQualityChecks.blinkDetected ? 'check_circle' : 'radio_button_unchecked'}</span>
-                        <span className="font-medium">Natural Blink</span>
-                      </div>
-                      <div className={`p-2 rounded-lg flex items-center gap-1.5 transition-colors ${videoQualityChecks.frameRate30 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
-                        <span className="material-symbols-outlined text-[15px] text-emerald-600">{videoQualityChecks.frameRate30 ? 'check_circle' : 'radio_button_unchecked'}</span>
-                        <span className="font-medium">30 FPS Stream</span>
-                      </div>
-                    </div>
-
-                    {/* PDPL Biometric Consent Checkbox */}
-                    <div className="pt-2 border-t border-outline-variant/30">
-                      <label className="flex items-start gap-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={enrollmentConsentGiven}
-                          onChange={(e) => setEnrollmentConsentGiven(e.target.checked)}
-                          className="mt-0.5 rounded text-secondary focus:ring-secondary/40"
-                        />
-                        <span className="text-[11px] text-on-surface-variant leading-relaxed">
-                          <strong className="text-on-surface">PDPL Biometric Consent:</strong> I confirm the employee has consented to facial biometric template storage and video liveness challenges for payroll identity verification under the Saudi Personal Data Protection Law (PDPL).
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 bg-surface-container-low border-t border-outline-variant/30 flex items-center justify-between shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCloseAddModal}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-lg shadow-secondary/35 flex items-center gap-1.5 transition-all ring-2 ring-secondary/20"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-white">check_circle</span>
-                  <span>Confirm &amp; Register Employee</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Employee Dossier Modal */}
       {selectedEmployeeDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface-container-lowest w-full max-w-2xl rounded-3xl shadow-2xl border border-outline-variant/50 p-6 space-y-5">
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedEmployeeDetail.photo}
-                  alt={selectedEmployeeDetail.name}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md ring-1 ring-outline-variant/30"
-                />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-data-mono font-bold text-xs text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-md border border-secondary/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-surface-container-lowest w-full max-w-4xl rounded-3xl shadow-2xl border border-outline-variant/50 overflow-hidden flex flex-col max-h-[92vh]">
+            
+            {/* Sticky Header with Deep Navy Gradient */}
+            <div className="p-4 sm:p-5 sm:px-6 bg-gradient-to-r from-[#101436] via-[#1a2152] to-[#251b45] text-white flex items-center justify-between shrink-0 border-b border-white/10 shadow-sm">
+              <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <div className="relative shrink-0">
+                  <img
+                    src={selectedEmployeeDetail.photo}
+                    alt={selectedEmployeeDetail.name}
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white/20 shadow-lg ring-2 ring-secondary/40"
+                  />
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[#101436] flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[13px] text-white font-bold">check</span>
+                  </span>
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-data-mono font-bold text-xs text-secondary-container bg-secondary-container/20 px-2.5 py-0.5 rounded-md border border-secondary-container/30">
                       {selectedEmployeeDetail.id}
                     </span>
-                    <span className="text-xs font-semibold text-secondary">
+                    <span className="text-xs font-semibold text-white/80 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px] text-secondary">flag</span>
                       {selectedEmployeeDetail.nationality}
                     </span>
+                    <span className="px-2 py-0.5 rounded-full bg-white/10 text-[11px] font-medium text-white/90 border border-white/10 truncate">
+                      {selectedEmployeeDetail.department}
+                    </span>
                   </div>
-                  <h3 className="font-headline-md text-xl font-bold text-on-surface mt-1">
+
+                  <h3 className="font-headline-md text-lg sm:text-2xl font-bold text-white mt-1 truncate">
                     {selectedEmployeeDetail.name}
                   </h3>
-                  <span className="text-xs text-on-surface-variant">
-                    {selectedEmployeeDetail.jobTitle}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedEmployeeDetail(null)}
-                className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-on-surface"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            {/* Ingested Identity Breakdown */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="p-3 bg-surface-container-low rounded-xl">
-                <span className="text-on-surface-variant block text-[10px] uppercase font-bold">
-                  {selectedEmployeeDetail.idType}
-                </span>
-                <strong className="text-on-surface font-data-mono text-xs block mt-0.5">
-                  {selectedEmployeeDetail.idNumber}
-                </strong>
-                <span className="text-[10px] text-on-surface-variant">Exp: {selectedEmployeeDetail.iqamaExpiry}</span>
-              </div>
-
-              <div className="p-3 bg-surface-container-low rounded-xl">
-                <span className="text-on-surface-variant block text-[10px] uppercase font-bold">
-                  Department
-                </span>
-                <strong className="text-on-surface text-xs block mt-0.5 truncate">
-                  {selectedEmployeeDetail.department}
-                </strong>
-                <span className="text-[10px] text-secondary">Assigned</span>
-              </div>
-
-              <div className="p-3 bg-surface-container-low rounded-xl">
-                <span className="text-on-surface-variant block text-[10px] uppercase font-bold">
-                  Supplier Agency
-                </span>
-                <strong className="text-on-surface text-xs block mt-0.5 truncate">
-                  {selectedEmployeeDetail.supplier}
-                </strong>
-                <span className="text-[10px] text-on-surface-variant">Authorized</span>
-              </div>
-
-              <div className="p-3 bg-surface-container-low rounded-xl">
-                <span className="text-on-surface-variant block text-[10px] uppercase font-bold">
-                  Comp Rate (SAR)
-                </span>
-                <strong className="text-secondary font-data-mono text-xs block mt-0.5">
-                  SAR {selectedEmployeeDetail.hourlyRateSAR}/hr
-                </strong>
-                <span className="text-[10px] text-on-surface-variant">SAR {selectedEmployeeDetail.monthlySalarySAR}/mo</span>
-              </div>
-            </div>
-
-            {/* Badges & Clearances */}
-            <div className="space-y-2 text-xs">
-              <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">
-                Safety Accreditations &amp; Site Clearances
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {selectedEmployeeDetail.safetyCerts.map((cert, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 rounded-lg bg-surface-container-low text-xs font-medium border border-outline-variant/30 flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-[14px] text-emerald-600">verified</span>
-                    {cert}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Operational & Bank Specs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1 border-t border-outline-variant/20">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant block">
-                  Disbursement IBAN
-                </span>
-                <span className="font-data-mono font-medium text-on-surface">
-                  {selectedEmployeeDetail.iban}
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant block">
-                  Biometric Access
-                </span>
-                <span className="font-medium text-on-surface">
-                  {selectedEmployeeDetail.gateAccess}
-                </span>
-              </div>
-            </div>
-
-            {/* Biometric Video Enrollment & Liveness Status */}
-            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px] text-secondary">videocam</span>
-                  <span>Cashier Biometric Video Profile</span>
-                </span>
-                {selectedEmployeeDetail.enrolled_video_path ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
-                    <span className="material-symbols-outlined text-[14px] text-emerald-600">verified</span>
-                    Video Enrolled (Blink Profile Active)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
-                    <span className="material-symbols-outlined text-[14px] text-amber-600">warning</span>
-                    Not Enrolled (Face Only)
-                  </span>
-                )}
-              </div>
-
-              {selectedEmployeeDetail.enrolled_video_path ? (
-                <div className="space-y-2 text-xs">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/30">
-                      <span className="text-on-surface-variant block text-[10px] font-semibold">Enrollment Timestamp</span>
-                      <strong className="text-on-surface font-data-mono">{selectedEmployeeDetail.video_enrolled_at || 'Verified on file'}</strong>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/30">
-                      <span className="text-on-surface-variant block text-[10px] font-semibold">PDPL Biometric Consent</span>
-                      <strong className="text-emerald-700">Consent Verified ({selectedEmployeeDetail.consent_date || 'On file'})</strong>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 text-[11px] text-on-surface-variant">
-                    <span>Eligible for both 1:1 Face Verification and Video Blink Challenge at cash disbursements.</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsEnrollingInDossier(true)}
-                      className="text-secondary font-semibold hover:underline flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">replay</span>
-                      Re-enroll Clip
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
-                    This employee does not have an enrolled video on file. When arriving at the cashier kiosk, the <strong>Verify Video (Blink Challenge)</strong> button will be disabled, and only 1:1 Face Verification will be available.
+                  <p className="text-xs text-white/70 flex items-center gap-1.5 mt-0.5 truncate">
+                    <span className="material-symbols-outlined text-[14px] text-secondary">badge</span>
+                    <span>{selectedEmployeeDetail.jobTitle}</span>
+                    <span className="text-white/40">•</span>
+                    <span>{selectedEmployeeDetail.supplier}</span>
                   </p>
-                  {!isEnrollingInDossier ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsEnrollingInDossier(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">videocam</span>
-                      <span>Enroll Biometric Video Clip Now</span>
-                    </button>
-                  ) : null}
                 </div>
-              )}
+              </div>
 
-              {/* In-Dossier Enrollment Panel */}
-              {isEnrollingInDossier && (
-                <div className="p-4 rounded-xl bg-surface-container-lowest border border-secondary/40 space-y-3 animate-fade-in mt-2">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-xs font-bold text-on-surface flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[16px] text-secondary">fiber_manual_record</span>
-                      <span>Record 4-Second Video Reference Clip</span>
-                    </h5>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEnrollingInDossier(false);
-                        setDossierVideoPreview(null);
-                        setDossierRecordingProgress(0);
-                      }}
-                      className="text-on-surface-variant hover:text-on-surface text-xs"
-                    >
-                      Cancel
-                    </button>
+              {/* Header Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert(`Gate badge sent to printer queue for ${selectedEmployeeDetail.name}`);
+                  }}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-medium border border-white/15 transition-all shadow-xs"
+                  title="Print Gate Badge"
+                >
+                  <span className="material-symbols-outlined text-[16px]">print</span>
+                  <span>Print Badge</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEmployeeDetail(null);
+                    setIsEnrollingInDossier(false);
+                    setDossierVideoPreview(null);
+                    setDossierRecordingProgress(0);
+                  }}
+                  className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/15"
+                  title="Close (Esc)"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 overscroll-contain">
+              
+              {/* Key Identity & Deployment Parameters Grid */}
+              <div>
+                <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-secondary">verified_user</span>
+                  <span>Identity &amp; Deployment Parameters</span>
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/30">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                      {selectedEmployeeDetail.idType}
+                    </span>
+                    <strong className="text-on-surface font-data-mono text-sm block mt-1">
+                      {selectedEmployeeDetail.idNumber}
+                    </strong>
+                    <span className="text-[11px] text-on-surface-variant block mt-0.5">
+                      Exp: <span className="font-semibold">{selectedEmployeeDetail.iqamaExpiry}</span>
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    {!dossierVideoPreview ? (
-                      <button
-                        type="button"
-                        onClick={handleStartDossierVideoRecording}
-                        disabled={dossierRecordingProgress > 0 && dossierRecordingProgress < 100}
-                        className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          {dossierRecordingProgress > 0 && dossierRecordingProgress < 100 ? 'progress_activity' : 'videocam'}
-                        </span>
-                        <span>
-                          {dossierRecordingProgress > 0 && dossierRecordingProgress < 100 ? 'Recording...' : 'Start 4s Recording'}
-                        </span>
-                      </button>
-                    ) : (
-                      <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                        Clip Recorded Successfully
+                  <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/30">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                      Department
+                    </span>
+                    <strong className="text-on-surface text-sm block mt-1 truncate" title={selectedEmployeeDetail.department}>
+                      {selectedEmployeeDetail.department}
+                    </strong>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-secondary font-medium mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                      Assigned On-Site
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/30">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                      Supplier Agency
+                    </span>
+                    <strong className="text-on-surface text-sm block mt-1 truncate" title={selectedEmployeeDetail.supplier}>
+                      {selectedEmployeeDetail.supplier}
+                    </strong>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium mt-0.5">
+                      <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                      Authorized
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/30">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                      Compensation Rate
+                    </span>
+                    <strong className="text-secondary font-data-mono text-sm block mt-1">
+                      SAR {selectedEmployeeDetail.hourlyRateSAR} <span className="text-xs font-normal text-on-surface-variant">/ hr</span>
+                    </strong>
+                    {selectedEmployeeDetail.monthlySalarySAR && (
+                      <span className="text-[11px] text-on-surface-variant block mt-0.5">
+                        SAR {selectedEmployeeDetail.monthlySalarySAR}/mo base
                       </span>
                     )}
                   </div>
+                </div>
+              </div>
 
-                  {dossierRecordingProgress > 0 && dossierRecordingProgress < 100 && (
-                    <div className="space-y-1">
-                      <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-secondary transition-all duration-200"
-                          style={{ width: `${dossierRecordingProgress}%` }}
-                        ></div>
+              {/* Attached Civil Verification Documents & Scans */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary border border-secondary/20">
+                      <span className="material-symbols-outlined text-[18px]">folder_shared</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-on-surface uppercase tracking-wider">
+                        Attached Civil Verification Documents &amp; Scans
+                      </h4>
+                      <p className="text-[11px] text-on-surface-variant">
+                        High-resolution copies parsed via AI OCR during employee onboarding.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+                    <span className="material-symbols-outlined text-[14px] text-emerald-600">verified</span>
+                    3 Documents Verified On File
+                  </span>
+                </div>
+
+                {/* 3 Document Cards: Passport Front, Passport Back, Saudi Iqama */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  {/* Passport Front */}
+                  <div
+                    onClick={() =>
+                      setInspectDocModal({
+                        title: `Passport Front (Biodata Page) • ${selectedEmployeeDetail.name}`,
+                        url:
+                          selectedEmployeeDetail.passportFront ||
+                          generatePassportFrontSvg(
+                            selectedEmployeeDetail.idNumber,
+                            selectedEmployeeDetail.name,
+                            selectedEmployeeDetail.nationality
+                          ),
+                        fileName: `Passport_Front_${selectedEmployeeDetail.idNumber}.svg`,
+                      })
+                    }
+                    className="p-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 hover:border-secondary hover:shadow-md cursor-pointer group transition-all space-y-2.5 shadow-2xs"
+                  >
+                    <div className="relative h-28 bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center border border-white/10">
+                      <img
+                        src={
+                          selectedEmployeeDetail.passportFront ||
+                          generatePassportFrontSvg(
+                            selectedEmployeeDetail.idNumber,
+                            selectedEmployeeDetail.name,
+                            selectedEmployeeDetail.nationality
+                          )
+                        }
+                        alt="Passport Front"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="px-2.5 py-1 rounded-lg bg-black/70 text-white text-[11px] font-bold flex items-center gap-1 backdrop-blur-xs">
+                          <span className="material-symbols-outlined text-[16px]">zoom_in</span>
+                          Inspect Scan
+                        </span>
                       </div>
-                      <span className="text-[10px] text-on-surface-variant">Analyzing eye aspect ratio &amp; landmarks...</span>
                     </div>
-                  )}
-
-                  {/* Quality Checks */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-                    <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.singleFace ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
-                      <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.singleFace ? 'check' : 'close'}</span>
-                      <span>Single Face</span>
-                    </div>
-                    <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.goodLighting ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
-                      <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.goodLighting ? 'check' : 'close'}</span>
-                      <span>Lighting</span>
-                    </div>
-                    <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.blinkDetected ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
-                      <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.blinkDetected ? 'check' : 'close'}</span>
-                      <span>Blink</span>
-                    </div>
-                    <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.frameRate30 ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
-                      <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.frameRate30 ? 'check' : 'close'}</span>
-                      <span>30 FPS</span>
+                    <div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-on-surface">Passport Front</span>
+                        <span className="text-[10px] text-secondary font-mono font-bold bg-secondary/10 px-2 py-0.5 rounded border border-secondary/20">
+                          Biodata Page
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
+                        <span className="truncate">Ref: {selectedEmployeeDetail.idNumber}</span>
+                        <span className="text-secondary font-semibold group-hover:underline flex items-center text-[10px]">
+                          View high-res →
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {dossierVideoPreview && (
-                    <div className="space-y-2 pt-2 border-t border-outline-variant/30">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={dossierConsentGiven}
-                          onChange={(e) => setDossierConsentGiven(e.target.checked)}
-                          className="rounded text-secondary focus:ring-secondary/40 text-xs"
-                        />
-                        <span className="text-[11px] text-on-surface-variant font-medium">
-                          I confirm employee gave PDPL consent for biometric video liveness verification.
+                  {/* Passport Back */}
+                  <div
+                    onClick={() =>
+                      setInspectDocModal({
+                        title: `Passport Back (Endorsements & Address) • ${selectedEmployeeDetail.name}`,
+                        url:
+                          selectedEmployeeDetail.passportBack ||
+                          generatePassportBackSvg(selectedEmployeeDetail.idNumber),
+                        fileName: `Passport_Back_${selectedEmployeeDetail.idNumber}.svg`,
+                      })
+                    }
+                    className="p-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 hover:border-secondary hover:shadow-md cursor-pointer group transition-all space-y-2.5 shadow-2xs"
+                  >
+                    <div className="relative h-28 bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center border border-white/10">
+                      <img
+                        src={
+                          selectedEmployeeDetail.passportBack ||
+                          generatePassportBackSvg(selectedEmployeeDetail.idNumber)
+                        }
+                        alt="Passport Back"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="px-2.5 py-1 rounded-lg bg-black/70 text-white text-[11px] font-bold flex items-center gap-1 backdrop-blur-xs">
+                          <span className="material-symbols-outlined text-[16px]">zoom_in</span>
+                          Inspect Scan
                         </span>
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={handleConfirmDossierEnrollment}
-                        disabled={!dossierConsentGiven}
-                        className="w-full py-2 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-sm"
-                      >
-                        Confirm &amp; Save Biometric Video Profile
-                      </button>
+                      </div>
                     </div>
-                  )}
+                    <div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-on-surface">Passport Back</span>
+                        <span className="text-[10px] text-secondary font-mono font-bold bg-secondary/10 px-2 py-0.5 rounded border border-secondary/20">
+                          Endorsements
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
+                        <span className="truncate">Address &amp; Parents</span>
+                        <span className="text-secondary font-semibold group-hover:underline flex items-center text-[10px]">
+                          View high-res →
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Saudi Iqama Card */}
+                  <div
+                    onClick={() =>
+                      setInspectDocModal({
+                        title: `Saudi Iqama Card (Muqeem ID) • ${selectedEmployeeDetail.name}`,
+                        url:
+                          selectedEmployeeDetail.iqamaPhoto ||
+                          generateIqamaSvg(
+                            selectedEmployeeDetail.idNumber,
+                            selectedEmployeeDetail.name,
+                            selectedEmployeeDetail.name,
+                            selectedEmployeeDetail.jobTitle
+                          ),
+                        fileName: `Saudi_Iqama_${selectedEmployeeDetail.idNumber}.svg`,
+                      })
+                    }
+                    className="p-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 hover:border-secondary hover:shadow-md cursor-pointer group transition-all space-y-2.5 shadow-2xs"
+                  >
+                    <div className="relative h-28 bg-emerald-950 rounded-xl overflow-hidden flex items-center justify-center border border-white/10">
+                      <img
+                        src={
+                          selectedEmployeeDetail.iqamaPhoto ||
+                          generateIqamaSvg(
+                            selectedEmployeeDetail.idNumber,
+                            selectedEmployeeDetail.name,
+                            selectedEmployeeDetail.name,
+                            selectedEmployeeDetail.jobTitle
+                          )
+                        }
+                        alt="Saudi Iqama"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="px-2.5 py-1 rounded-lg bg-black/70 text-white text-[11px] font-bold flex items-center gap-1 backdrop-blur-xs">
+                          <span className="material-symbols-outlined text-[16px]">zoom_in</span>
+                          Inspect Scan
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-on-surface">Saudi Iqama Card</span>
+                        <span className="text-[10px] text-emerald-800 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Muqeem ID
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
+                        <span className="truncate">Exp: {selectedEmployeeDetail.iqamaExpiry}</span>
+                        <span className="text-secondary font-semibold group-hover:underline flex items-center text-[10px]">
+                          View high-res →
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Safety Accreditations & Site Clearances */}
+              <div className="space-y-2.5">
+                <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">health_and_safety</span>
+                  Safety Accreditations &amp; Site Clearances
+                </span>
+                <div className="flex flex-wrap gap-2.5">
+                  {selectedEmployeeDetail.safetyCerts.map((cert, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3.5 py-1.5 rounded-xl bg-surface-container-low text-xs font-medium border border-outline-variant/30 flex items-center gap-2 text-on-surface shadow-2xs"
+                    >
+                      <span className="material-symbols-outlined text-[15px] text-emerald-600 font-bold">check_circle</span>
+                      {cert}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Biometric Terminal Access Clearance */}
+              {selectedEmployeeDetail.gateAccess && (
+                <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary border border-secondary/20">
+                      <span className="material-symbols-outlined text-[18px]">meeting_room</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-on-surface-variant block">
+                        Biometric Terminal Access
+                      </span>
+                      <span className="font-semibold text-xs sm:text-sm text-on-surface">
+                        {selectedEmployeeDetail.gateAccess}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Authorized Access
+                  </span>
                 </div>
               )}
+
+              {/* Cashier Biometric Video Profile & Liveness Status */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">videocam</span>
+                    <span>Cashier Biometric Video Profile</span>
+                  </span>
+                  {selectedEmployeeDetail.enrolled_video_path ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+                      <span className="material-symbols-outlined text-[14px] text-emerald-600">verified</span>
+                      Video Enrolled (Blink Profile Active)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold shadow-2xs">
+                      <span className="material-symbols-outlined text-[14px] text-amber-600">warning</span>
+                      Not Enrolled (Face Only)
+                    </span>
+                  )}
+                </div>
+
+                {selectedEmployeeDetail.enrolled_video_path ? (
+                  <div className="space-y-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30">
+                        <span className="text-on-surface-variant block text-[10px] font-semibold uppercase tracking-wider">
+                          Enrollment Timestamp
+                        </span>
+                        <strong className="text-on-surface font-data-mono text-xs block mt-0.5">
+                          {selectedEmployeeDetail.video_enrolled_at || 'Verified on file'}
+                        </strong>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30">
+                        <span className="text-on-surface-variant block text-[10px] font-semibold uppercase tracking-wider">
+                          PDPL Biometric Consent
+                        </span>
+                        <strong className="text-emerald-700 text-xs block mt-0.5 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">verified</span>
+                          Consent Verified ({selectedEmployeeDetail.consent_date || 'On file'})
+                        </strong>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-on-surface-variant">
+                      <span>Eligible for both 1:1 Face Verification and Video Blink Challenge at cash disbursements.</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsEnrollingInDossier(true)}
+                        className="text-secondary font-bold hover:underline flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">replay</span>
+                        Re-enroll Clip
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-on-surface-variant leading-relaxed">
+                      This employee does not have an enrolled video on file. When arriving at the cashier kiosk, the <strong>Verify Video (Blink Challenge)</strong> button will be disabled, and only 1:1 Face Verification will be available.
+                    </p>
+                    {!isEnrollingInDossier ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsEnrollingInDossier(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">videocam</span>
+                        <span>Enroll Biometric Video Clip Now</span>
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* In-Dossier Enrollment Panel */}
+                {isEnrollingInDossier && (
+                  <div className="p-4 rounded-xl bg-surface-container-lowest border border-secondary/40 space-y-3 animate-fade-in mt-2">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-secondary">fiber_manual_record</span>
+                        <span>Record 4-Second Video Reference Clip</span>
+                      </h5>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEnrollingInDossier(false);
+                          setDossierVideoPreview(null);
+                          setDossierRecordingProgress(0);
+                        }}
+                        className="text-on-surface-variant hover:text-on-surface text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {!dossierVideoPreview ? (
+                        <button
+                          type="button"
+                          onClick={handleStartDossierVideoRecording}
+                          disabled={dossierRecordingProgress > 0 && dossierRecordingProgress < 100}
+                          className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            {dossierRecordingProgress > 0 && dossierRecordingProgress < 100 ? 'progress_activity' : 'videocam'}
+                          </span>
+                          <span>
+                            {dossierRecordingProgress > 0 && dossierRecordingProgress < 100 ? 'Recording...' : 'Start 4s Recording'}
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                          Clip Recorded Successfully
+                        </span>
+                      )}
+                    </div>
+
+                    {dossierRecordingProgress > 0 && dossierRecordingProgress < 100 && (
+                      <div className="space-y-1">
+                        <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-secondary transition-all duration-200"
+                            style={{ width: `${dossierRecordingProgress}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-[10px] text-on-surface-variant">Analyzing eye aspect ratio &amp; landmarks...</span>
+                      </div>
+                    )}
+
+                    {/* Quality Checks */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                      <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.singleFace ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
+                        <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.singleFace ? 'check' : 'close'}</span>
+                        <span>Single Face</span>
+                      </div>
+                      <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.goodLighting ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
+                        <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.goodLighting ? 'check' : 'close'}</span>
+                        <span>Lighting</span>
+                      </div>
+                      <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.blinkDetected ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
+                        <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.blinkDetected ? 'check' : 'close'}</span>
+                        <span>Blink</span>
+                      </div>
+                      <div className={`p-1.5 rounded flex items-center gap-1 ${dossierQualityChecks.frameRate30 ? 'bg-emerald-50 text-emerald-800' : 'bg-surface-container-low text-on-surface-variant'}`}>
+                        <span className="material-symbols-outlined text-[13px]">{dossierQualityChecks.frameRate30 ? 'check' : 'close'}</span>
+                        <span>30 FPS</span>
+                      </div>
+                    </div>
+
+                    {dossierVideoPreview && (
+                      <div className="space-y-2 pt-2 border-t border-outline-variant/30">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={dossierConsentGiven}
+                            onChange={(e) => setDossierConsentGiven(e.target.checked)}
+                            className="rounded text-secondary focus:ring-secondary/40 text-xs"
+                          />
+                          <span className="text-[11px] text-on-surface-variant font-medium">
+                            I confirm employee gave PDPL consent for biometric video liveness verification.
+                          </span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={handleConfirmDossierEnrollment}
+                          disabled={!dossierConsentGiven}
+                          className="w-full py-2 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-sm"
+                        >
+                          Confirm &amp; Save Biometric Video Profile
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Footer Buttons */}
-            <div className="pt-2 flex items-center justify-between border-t border-outline-variant/20">
-              <span className="text-xs text-on-surface-variant">
-                Emergency: <strong className="text-on-surface">{selectedEmployeeDetail.emergencyContact}</strong>
-              </span>
+            {/* Sticky Dossier Footer */}
+            <div className="p-4 sm:px-6 bg-surface-container-low border-t border-outline-variant/30 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                <span className="material-symbols-outlined text-[16px] text-rose-500">contact_emergency</span>
+                <span>
+                  Emergency: <strong className="text-on-surface font-semibold">{selectedEmployeeDetail.emergencyContact}</strong>
+                </span>
+              </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
+                  type="button"
                   onClick={() => {
-                    alert(`Badge generated for ${selectedEmployeeDetail.name}`);
-                    setSelectedEmployeeDetail(null);
+                    alert(`Badge generated and sent to print queue for ${selectedEmployeeDetail.name}`);
                   }}
-                  className="px-4 py-2 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-md shadow-secondary/25 transition-all"
+                  className="px-4 py-2 bg-gradient-to-r from-secondary to-[#F18E3B] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-md shadow-secondary/20 flex items-center gap-1.5 transition-all"
                 >
-                  Print Gate Badge
+                  <span className="material-symbols-outlined text-[15px]">print</span>
+                  <span>Print Gate Badge</span>
                 </button>
                 <button
-                  onClick={() => setSelectedEmployeeDetail(null)}
-                  className="px-4 py-2 bg-surface-container-high text-on-surface rounded-xl text-xs font-semibold"
+                  type="button"
+                  onClick={() => {
+                    setSelectedEmployeeDetail(null);
+                    setIsEnrollingInDossier(false);
+                    setDossierVideoPreview(null);
+                    setDossierRecordingProgress(0);
+                  }}
+                  className="px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-xl text-xs font-semibold transition-all border border-outline-variant/20"
                 >
                   Close Dossier
                 </button>
               </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox for Inspecting Document Scans in Dossier */}
+      {inspectDocModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-surface-container-lowest w-full max-w-3xl rounded-3xl shadow-2xl border border-outline-variant/60 overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-4 sm:p-5 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-[22px] text-secondary">visibility</span>
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface">{inspectDocModal.title}</h3>
+                  <span className="text-[11px] font-mono text-on-surface-variant">{inspectDocModal.fileName}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectDocModal(null)}
+                className="w-8 h-8 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface flex items-center justify-center transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 flex-1 overflow-auto flex items-center justify-center bg-slate-950/90">
+              <img
+                src={inspectDocModal.url}
+                alt="Document Inspection"
+                className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+
+            <div className="p-4 bg-surface-container-low border-t border-outline-variant/30 flex items-center justify-between text-xs">
+              <span className="text-on-surface-variant">Verified civil credential on file • PDPL compliant</span>
+              <button
+                type="button"
+                onClick={() => setInspectDocModal(null)}
+                className="px-4 py-2 bg-secondary text-white rounded-xl font-bold"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
